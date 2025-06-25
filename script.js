@@ -55,17 +55,19 @@ class VLImposter2Client {
     const socketUrl = window.location.origin
     console.log("🌐 Connecting to:", socketUrl)
 
-    // Initialize Socket.IO connection with updated configuration
+    // Initialize Socket.IO connection with better stability settings
     this.socket = window.io(socketUrl, {
       path: "/api/socket",
-      transports: ["polling", "websocket"],
-      timeout: 20000,
+      transports: ["polling"], // Force polling for better Vercel compatibility
+      timeout: 30000, // Increased timeout
       forceNew: true,
       autoConnect: true,
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 5,
-      maxReconnectionAttempts: 5,
+      reconnectionDelay: 2000, // Wait 2 seconds before reconnecting
+      reconnectionAttempts: 10, // More reconnection attempts
+      reconnectionDelayMax: 5000, // Max delay between attempts
+      maxReconnectionAttempts: 10,
+      randomizationFactor: 0.5,
     })
 
     // Connection events with detailed logging
@@ -74,13 +76,16 @@ class VLImposter2Client {
       console.log("🆔 Socket ID:", this.socket.id)
       console.log("🚀 Transport:", this.socket.io.engine.transport.name)
       this.connectionReady = true
+      this.updateConnectionStatus("connected", "Connected")
       this.showNotification("Connected to server!")
+      this.startConnectionHealthCheck()
     })
 
     this.socket.on("connect_error", (error) => {
       console.error("❌ Connection error:", error)
       console.error("❌ Error type:", error.type)
       console.error("❌ Error description:", error.description)
+      this.updateConnectionStatus("disconnected", "Connection Failed")
       this.showError(`Connection failed: ${error.message || error.type || "Unknown error"}`)
       this.connectionReady = false
     })
@@ -88,6 +93,7 @@ class VLImposter2Client {
     this.socket.on("disconnect", (reason) => {
       console.log("❌ Disconnected from server:", reason)
       this.connectionReady = false
+      this.updateConnectionStatus("disconnected", "Disconnected")
       if (reason === "io server disconnect") {
         // Server disconnected, try to reconnect
         this.socket.connect()
@@ -98,11 +104,13 @@ class VLImposter2Client {
     this.socket.on("reconnect", (attemptNumber) => {
       console.log("🔄 Reconnected to server after", attemptNumber, "attempts")
       this.connectionReady = true
+      this.updateConnectionStatus("connected", "Reconnected")
       this.showNotification("Reconnected to server!")
     })
 
     this.socket.on("reconnect_attempt", (attemptNumber) => {
       console.log("🔄 Reconnection attempt", attemptNumber)
+      this.updateConnectionStatus("connecting", `Reconnecting... (${attemptNumber})`)
     })
 
     this.socket.on("reconnect_error", (error) => {
@@ -218,6 +226,56 @@ class VLImposter2Client {
     }, 3000)
   }
 
+  updateConnectionStatus(status, message) {
+    const statusEl = document.getElementById("connection-status")
+    const textEl = document.getElementById("connection-text")
+    const helpEl = document.getElementById("connection-help")
+
+    if (!statusEl || !textEl) return
+
+    statusEl.className = `connection-status ${status}`
+    textEl.textContent = message
+
+    // Show help if disconnected for too long
+    if (status === "disconnected" && helpEl) {
+      setTimeout(() => {
+        if (!this.connectionReady) {
+          helpEl.style.display = "block"
+        }
+      }, 5000)
+    } else if (helpEl) {
+      helpEl.style.display = "none"
+    }
+  }
+
+  startConnectionHealthCheck() {
+    // Ping server every 30 seconds to keep connection alive
+    this.healthCheckInterval = setInterval(() => {
+      if (this.socket && this.connectionReady) {
+        console.log("💓 Sending heartbeat...")
+        this.socket.emit("ping", { timestamp: Date.now() })
+      }
+    }, 30000)
+
+    // Handle pong response
+    this.socket.on("pong", (data) => {
+      console.log("💓 Heartbeat response received:", Date.now() - data.timestamp, "ms")
+    })
+  }
+
+  forceReconnect() {
+    console.log("🔄 Force reconnecting...")
+    this.connectionReady = false
+    this.updateConnectionStatus("connecting", "Reconnecting...")
+
+    if (this.socket) {
+      this.socket.disconnect()
+      this.socket.connect()
+    } else {
+      this.connectToServer()
+    }
+  }
+
   bindEvents() {
     // Entry page events
     const createRoomBtn = document.getElementById("create-room-btn")
@@ -281,6 +339,10 @@ class VLImposter2Client {
 
     if (playerNameInput) playerNameInput.addEventListener("input", () => this.validateInputs())
     if (roomCodeInput) roomCodeInput.addEventListener("input", () => this.validateInputs())
+
+    // Reconnect button
+    const reconnectBtn = document.getElementById("reconnect-btn")
+    if (reconnectBtn) reconnectBtn.addEventListener("click", () => this.forceReconnect())
   }
 
   createRoom() {
@@ -338,17 +400,20 @@ class VLImposter2Client {
   async validateInputs() {
     const playerNameInput = document.getElementById("player-name")
     const roomCodeInput = document.getElementById("room-code")
+    const startBtn = document.getElementById("start-btn")
 
-    if (!playerNameInput || !roomCodeInput) return
+    if (!playerNameInput || !roomCodeInput || !startBtn) return
 
     const playerName = playerNameInput.value.trim()
     const roomCode = roomCodeInput.value.trim().toUpperCase()
 
-    if (playerName.length >= 2) {
+    // Show start button if both fields are filled
+    if (playerName.length >= 2 && roomCode.length === 4) {
+      this.gameState.roomCode = roomCode
+      this.gameState.playerName = playerName
+      startBtn.style.display = "block"
       this.showInputSuccess("player-name")
-    }
 
-    if (roomCode.length === 4) {
       try {
         console.log("🔍 Validating room code:", roomCode)
         const response = await fetch("/api/rooms", {
@@ -364,17 +429,21 @@ class VLImposter2Client {
 
         if (response.ok && data.exists && !data.full) {
           this.showInputSuccess("room-code")
-          this.gameState.roomCode = roomCode
-          this.gameState.playerName = playerName
-          const startBtn = document.getElementById("start-btn")
-          if (startBtn) startBtn.style.display = "block"
         } else {
           this.showInputError("room-code", data.error || "Room not available")
+          startBtn.style.display = "none"
         }
       } catch (error) {
         console.error("❌ Room validation error:", error)
         this.showInputError("room-code", "Failed to validate room")
+        startBtn.style.display = "none"
       }
+    } else {
+      startBtn.style.display = "none"
+    }
+
+    if (playerName.length >= 2) {
+      this.showInputSuccess("player-name")
     }
   }
 
@@ -556,7 +625,7 @@ class VLImposter2Client {
   }
 
   submitAnswer() {
-    const answerInput = document.getElementById("answer-input")
+      const answerInput = document.getElementById("answer-input")
     if (!answerInput) return
 
     const answer = answerInput.value.trim()
@@ -1001,17 +1070,36 @@ class VLImposter2Client {
   toggleJoinRoom() {
     const roomCodeGroup = document.getElementById("room-code-group")
     const joinBtn = document.getElementById("join-room-btn")
+    const createRoomBtn = document.getElementById("create-room-btn")
 
-    if (!roomCodeGroup || !joinBtn) return
+    if (!roomCodeGroup || !joinBtn || !createRoomBtn) return
 
     const isVisible = roomCodeGroup.style.display !== "none"
 
     if (isVisible) {
+      // Hide join form
       roomCodeGroup.style.display = "none"
       joinBtn.textContent = "🎯 Join Room"
+      joinBtn.classList.remove("secondary")
+      joinBtn.classList.add("secondary")
+      createRoomBtn.disabled = false
+
+      // Hide start button
+      const startBtn = document.getElementById("start-btn")
+      if (startBtn) startBtn.style.display = "none"
     } else {
+      // Show join form
       roomCodeGroup.style.display = "block"
       joinBtn.textContent = "❌ Cancel"
+      joinBtn.classList.remove("secondary")
+      joinBtn.classList.add("primary")
+      createRoomBtn.disabled = true
+
+      // Focus on room code input
+      const roomCodeInput = document.getElementById("room-code")
+      if (roomCodeInput) {
+        setTimeout(() => roomCodeInput.focus(), 100)
+      }
     }
   }
 }
@@ -1025,3 +1113,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Make game available globally for onclick handlers
 window.game = game
+      
+    
