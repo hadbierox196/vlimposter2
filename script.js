@@ -55,38 +55,72 @@ class VLImposter2Client {
     const socketUrl = window.location.origin
     console.log("🌐 Connecting to:", socketUrl)
 
-    // Initialize Socket.IO connection with correct path
+    // Initialize Socket.IO connection with updated configuration
     this.socket = window.io(socketUrl, {
-      path: "/socket.io/",
-      transports: ["websocket", "polling"],
+      path: "/api/socket",
+      transports: ["polling", "websocket"],
       timeout: 20000,
       forceNew: true,
+      autoConnect: true,
+      reconnection: true,
+      reconnectionDelay: 1000,
+      reconnectionAttempts: 5,
+      maxReconnectionAttempts: 5,
     })
 
     // Connection events with detailed logging
     this.socket.on("connect", () => {
       console.log("✅ Connected to server successfully!")
       console.log("🆔 Socket ID:", this.socket.id)
+      console.log("🚀 Transport:", this.socket.io.engine.transport.name)
       this.connectionReady = true
       this.showNotification("Connected to server!")
     })
 
     this.socket.on("connect_error", (error) => {
       console.error("❌ Connection error:", error)
-      this.showError(`Connection failed: ${error.message}`)
+      console.error("❌ Error type:", error.type)
+      console.error("❌ Error description:", error.description)
+      this.showError(`Connection failed: ${error.message || error.type || "Unknown error"}`)
       this.connectionReady = false
     })
 
     this.socket.on("disconnect", (reason) => {
       console.log("❌ Disconnected from server:", reason)
       this.connectionReady = false
-      this.showError("Connection lost. Please refresh the page.")
+      if (reason === "io server disconnect") {
+        // Server disconnected, try to reconnect
+        this.socket.connect()
+      }
+      this.showError("Connection lost. Attempting to reconnect...")
     })
 
-    this.socket.on("reconnect", () => {
-      console.log("🔄 Reconnected to server")
+    this.socket.on("reconnect", (attemptNumber) => {
+      console.log("🔄 Reconnected to server after", attemptNumber, "attempts")
       this.connectionReady = true
       this.showNotification("Reconnected to server!")
+    })
+
+    this.socket.on("reconnect_attempt", (attemptNumber) => {
+      console.log("🔄 Reconnection attempt", attemptNumber)
+    })
+
+    this.socket.on("reconnect_error", (error) => {
+      console.error("❌ Reconnection error:", error)
+    })
+
+    this.socket.on("reconnect_failed", () => {
+      console.error("❌ Failed to reconnect after maximum attempts")
+      this.showError("Failed to reconnect. Please refresh the page.")
+    })
+
+    // Transport upgrade events
+    this.socket.io.on("upgrade", () => {
+      console.log("⬆️ Upgraded to transport:", this.socket.io.engine.transport.name)
+    })
+
+    this.socket.io.on("upgradeError", (error) => {
+      console.error("❌ Upgrade error:", error)
     })
 
     // Room events
