@@ -1,11 +1,10 @@
 {
-  "name": "vl-imposter-2-backend",
+  "name": "vl-imposter-2-fullstack",
   "version": "1.0.0",
-  "description": "Backend for VL Imposter 2 multiplayer bluffing game",
-  "main": "api/socket.js",
+  "description": "Full-stack VL Imposter 2 multiplayer bluffing game",
+  "main": "index.html",
   "scripts": {
     "dev": "vercel dev",
-    "build": "echo 'No build step required'",
     "start": "node server.js"
   },
   "dependencies": {
@@ -19,7 +18,7 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["game", "multiplayer", "socket.io", "express", "vercel"],
+  "keywords": ["game", "multiplayer", "socket.io", "express", "vercel", "frontend", "backend"],
   "author": "VL Imposter 2 Team",
   "license": "MIT"
 }
