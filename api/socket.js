@@ -1,5 +1,4 @@
 const { Server } = require("socket.io")
-const { createServer } = require("http")
 
 // Game state storage (in-memory for this implementation)
 const rooms = new Map()
@@ -387,14 +386,18 @@ function resetGame(roomCode, io) {
 
 // Socket.IO handler
 function handleSocket(io) {
+  console.log("🚀 Socket.IO handler initialized")
+
   io.on("connection", (socket) => {
     console.log(`🔌 Socket connected: ${socket.id}`)
 
     // Create room
     socket.on("createRoom", (data) => {
+      console.log(`📥 Create room request from ${socket.id}:`, data)
       const { playerName } = data
 
       if (!playerName || playerName.trim().length === 0) {
+        console.log(`❌ Invalid player name from ${socket.id}`)
         socket.emit("error", { message: "Player name is required" })
         return
       }
@@ -416,6 +419,7 @@ function handleSocket(io) {
       // Join socket room
       socket.join(roomCode)
 
+      console.log(`✅ Room ${roomCode} created successfully for ${playerName}`)
       socket.emit("roomCreated", {
         roomCode,
         isHost: true,
@@ -429,6 +433,7 @@ function handleSocket(io) {
 
     // Join room
     socket.on("joinRoom", (data) => {
+      console.log(`📥 Join room request from ${socket.id}:`, data)
       const { roomCode, playerName } = data
 
       if (!roomCode || !playerName) {
@@ -722,25 +727,48 @@ setInterval(
   30 * 60 * 1000,
 ) // Run every 30 minutes
 
-// Export for Vercel
+// Export for Vercel - FIXED VERSION
 module.exports = (req, res) => {
+  console.log("🔧 Socket.IO API endpoint called")
+
+  // Set CORS headers
+  res.setHeader("Access-Control-Allow-Origin", "*")
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type")
+
+  if (req.method === "OPTIONS") {
+    res.status(200).end()
+    return
+  }
+
+  if (!res.socket?.server) {
+    console.error("❌ No HTTP server available")
+    res.status(500).json({ error: "Server not available" })
+    return
+  }
+
   if (!res.socket.server.io) {
     console.log("🚀 Initializing Socket.IO server...")
 
-    const httpServer = res.socket.server
-    const io = new Server(httpServer, {
-      path: "/api/socket",
+    const io = new Server(res.socket.server, {
+      path: "/socket.io/",
       cors: {
         origin: "*",
         methods: ["GET", "POST"],
         credentials: true,
       },
       transports: ["websocket", "polling"],
+      allowEIO3: true,
     })
 
     res.socket.server.io = io
     handleSocket(io)
+    console.log("✅ Socket.IO server initialized successfully")
   }
 
-  res.end()
-}
+  res.status(200).json({ 
+    status: "Socket.IO server running",
+    path: "/socket.io/",
+    timestamp: new Date().toISOString()
+  })
+      }
