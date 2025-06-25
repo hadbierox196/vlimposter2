@@ -614,3 +614,116 @@ body {
     padding: 1rem;
   }
 }
+
+/* Connection Status Indicator */
+.connection-status {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  border: 2px solid var(--border-color);
+  background-color: var(--secondary-bg);
+}
+
+.connection-status.connected {
+  border-color: var(--success-color);
+  color: var(--success-color);
+}
+
+.connection-status.disconnected {
+  border-color: var(--error-color);
+  color: var(--error-color);
+}
+
+.connection-status.connecting {
+  border-color: #ffaa00;
+  color: #ffaa00;
+}
+
+#connection-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: pulse 2s infinite;
+}
+
+.connection-status.connected #connection-dot {
+  animation: none;
+  background-color: var(--success-color);
+}
+
+.connection-help {
+  text-align: center;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--hover-bg);
+}
+
+.connection-help p {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--secondary-text);
+}
+
+/* Improved input styles */
+input[style*="text-transform: uppercase"] {
+  text-transform: uppercase !important;
+}
+
+/* Better button states */
+.game-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.game-btn.loading {
+  position: relative;
+  color: transparent;
+}
+
+.game-btn.loading::after {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile improvements */
+@media (max-width: 768px) {
+  .connection-status {
+    top: 10px;
+    right: 10px;
+    font-size: 0.7rem;
+    padding: 6px 10px;
+  }
+}
