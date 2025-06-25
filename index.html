@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VL Imposter 2</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Entry Page -->
+    <div id="entry-page" class="page active">
+        <div class="container">
+            <h1 class="game-title">VL IMPOSTER 2</h1>
+            <div class="form-container">
+                <div class="input-group">
+                    <label for="player-name">Player Name</label>
+                    <input type="text" id="player-name" placeholder="Enter your name" maxlength="20">
+                </div>
+                <div class="input-group" id="room-code-group" style="display: none;">
+                    <label for="room-code">Room Code</label>
+                    <input type="text" id="room-code" placeholder="Enter 4-letter code" maxlength="4">
+                </div>
+                <div class="button-group">
+                    <button id="create-room-btn" class="game-btn primary">🌀 Create Room</button>
+                    <button id="join-room-btn" class="game-btn secondary">🎯 Join Room</button>
+                </div>
+                <button id="start-btn" class="game-btn primary" style="display: none;">Enter Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lobby Page -->
+    <div id="lobby-page" class="page">
+        <div class="container">
+            <div class="room-header">
+                <h2>Room: <span id="room-code-display"></span></h2>
+                <button id="copy-code-btn" class="copy-btn">📋</button>
+            </div>
+            <div class="lobby-content">
+                <div class="player-list">
+                    <h3>Players (<span id="player-count">0</span>/4)</h3>
+                    <div id="players-container"></div>
+                </div>
+                <div class="lobby-status">
+                    <p id="lobby-message">Waiting for players to join...</p>
+                    <button id="ready-btn" class="game-btn secondary">Ready</button>
+                    <button id="start-game-btn" class="game-btn primary" style="display: none;">Start Game</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Game Page -->
+    <div id="game-page" class="page">
+        <div class="container">
+            <div class="game-header">
+                <div class="timer-container">
+                    <div class="timer-circle">
+                        <span id="timer-text">10</span>
+                    </div>
+                    <p id="phase-text">Answer Phase</p>
+                </div>
+            </div>
+            <div class="game-content">
+                <div class="question-section">
+                    <h2 id="question-display">Your secret question will appear here...</h2>
+                    <div id="answer-section">
+                        <input type="text" id="answer-input" placeholder="Type your answer here..." maxlength="100">
+                        <button id="submit-answer-btn" class="game-btn primary">Submit Answer</button>
+                    </div>
+                </div>
+                <div class="players-sidebar">
+                    <h3>Players</h3>
+                    <div id="game-players-list"></div>
+                </div>
+            </div>
+            <div id="chat-section" class="chat-section" style="display: none;">
+                <div class="answers-display">
+                    <h3>Answers Revealed:</h3>
+                    <div id="answers-list"></div>
+                </div>
+                <div class="chat-container">
+                    <div id="chat-messages"></div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chat-input" placeholder="Type your message...">
+                        <button id="send-chat-btn" class="game-btn primary">Send</button>
+                    </div>
+                    <div id="typing-indicator"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Elimination Page -->
+    <div id="elimination-page" class="page">
+        <div class="container">
+            <h2>Time to Vote!</h2>
+            <p>Who do you think is the imposter?</p>
+            <div id="voting-container"></div>
+            <div id="voting-results" style="display: none;">
+                <h3>Voting Results:</h3>
+                <div id="results-list"></div>
+                <div id="game-result"></div>
+                <button id="new-game-btn" class="game-btn primary">New Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Theme Toggle -->
+    <button id="theme-toggle" class="theme-toggle">🌙</button>
+
+    <script src="script.js"></script>
+</body>
+</html>
