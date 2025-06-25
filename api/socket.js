@@ -391,6 +391,11 @@ function handleSocket(io) {
   io.on("connection", (socket) => {
     console.log(`🔌 Socket connected: ${socket.id}`)
 
+    // Handle ping for connection health check
+    socket.on("ping", (data) => {
+      socket.emit("pong", data)
+    })
+
     // Create room
     socket.on("createRoom", (data) => {
       console.log(`📥 Create room request from ${socket.id}:`, data)
@@ -763,12 +768,12 @@ module.exports = (req, res) => {
       pingTimeout: 60000,
       pingInterval: 25000,
       upgradeTimeout: 30000,
-      maxHttpBufferSize: 1e6,
+       maxHttpBufferSize: 1e6,
     })
 
     res.socket.server.io = io
     handleSocket(io)
-     console.log("✅ Socket.IO server initialized successfully")
+    console.log("✅ Socket.IO server initialized successfully")
   }
 
   res.status(200).json({
