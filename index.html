@@ -10,6 +10,12 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- Connection Status Indicator -->
+    <div id="connection-status" class="connection-status disconnected">
+        <span id="connection-text">Connecting...</span>
+        <div id="connection-dot"></div>
+    </div>
+
     <!-- Entry Page -->
     <div id="entry-page" class="page active">
         <div class="container">
@@ -21,13 +27,17 @@
                 </div>
                 <div class="input-group" id="room-code-group" style="display: none;">
                     <label for="room-code">Room Code</label>
-                    <input type="text" id="room-code" placeholder="Enter 4-letter code" maxlength="4">
+                    <input type="text" id="room-code" placeholder="Enter 4-letter code" maxlength="4" style="text-transform: uppercase;">
                 </div>
                 <div class="button-group">
                     <button id="create-room-btn" class="game-btn primary">🌀 Create Room</button>
                     <button id="join-room-btn" class="game-btn secondary">🎯 Join Room</button>
                 </div>
                 <button id="start-btn" class="game-btn primary" style="display: none;">Enter Game</button>
+                <div id="connection-help" class="connection-help" style="display: none;">
+                    <p>Having connection issues?</p>
+                    <button id="reconnect-btn" class="game-btn secondary">🔄 Reconnect</button>
+                </div>
             </div>
         </div>
     </div>
