@@ -727,7 +727,7 @@ setInterval(
   30 * 60 * 1000,
 ) // Run every 30 minutes
 
-// Export for Vercel - FIXED VERSION
+// Export for Vercel - UPDATED VERSION with better WebSocket support
 module.exports = (req, res) => {
   console.log("🔧 Socket.IO API endpoint called")
 
@@ -735,6 +735,7 @@ module.exports = (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*")
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
   res.setHeader("Access-Control-Allow-Headers", "Content-Type")
+  res.setHeader("Access-Control-Allow-Credentials", "true")
 
   if (req.method === "OPTIONS") {
     res.status(200).end()
@@ -751,24 +752,29 @@ module.exports = (req, res) => {
     console.log("🚀 Initializing Socket.IO server...")
 
     const io = new Server(res.socket.server, {
-      path: "/socket.io/",
+      path: "/api/socket",
       cors: {
         origin: "*",
         methods: ["GET", "POST"],
         credentials: true,
       },
-      transports: ["websocket", "polling"],
+      transports: ["polling", "websocket"],
       allowEIO3: true,
+      pingTimeout: 60000,
+      pingInterval: 25000,
+      upgradeTimeout: 30000,
+      maxHttpBufferSize: 1e6,
     })
 
     res.socket.server.io = io
     handleSocket(io)
-    console.log("✅ Socket.IO server initialized successfully")
+     console.log("✅ Socket.IO server initialized successfully")
   }
 
-  res.status(200).json({ 
+  res.status(200).json({
     status: "Socket.IO server running",
-    path: "/socket.io/",
-    timestamp: new Date().toISOString()
+    path: "/api/socket",
+    transports: ["polling", "websocket"],
+    timestamp: new Date().toISOString(),
   })
-      }
+}
