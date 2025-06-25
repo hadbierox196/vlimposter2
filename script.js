@@ -1,6 +1,4 @@
-// Updated frontend JavaScript to properly integrate with the backend
-import { io } from "socket.io-client"
-
+// Complete VL Imposter 2 Client - Frontend JavaScript
 class VLImposter2Client {
   constructor() {
     this.socket = null
@@ -34,12 +32,32 @@ class VLImposter2Client {
   connectToServer() {
     console.log("🔌 Attempting to connect to server...")
 
-    // Try multiple connection methods
+    // Load Socket.IO from CDN if not available
+    if (typeof window.io === "undefined") {
+      console.log("📦 Loading Socket.IO from CDN...")
+      const script = document.createElement("script")
+      script.src = "https://cdn.socket.io/4.7.4/socket.io.min.js"
+      script.onload = () => {
+        console.log("✅ Socket.IO loaded from CDN")
+        this.initializeSocket()
+      }
+      script.onerror = () => {
+        console.error("❌ Failed to load Socket.IO from CDN")
+        this.showError("Failed to load Socket.IO. Please refresh the page.")
+      }
+      document.head.appendChild(script)
+    } else {
+      this.initializeSocket()
+    }
+  }
+
+  initializeSocket() {
     const socketUrl = window.location.origin
     console.log("🌐 Connecting to:", socketUrl)
 
-    this.socket = io(socketUrl, {
-      path: "/api/socket",
+    // Initialize Socket.IO connection with correct path
+    this.socket = window.io(socketUrl, {
+      path: "/socket.io/",
       transports: ["websocket", "polling"],
       timeout: 20000,
       forceNew: true,
@@ -139,8 +157,10 @@ class VLImposter2Client {
     // Success events
     this.socket.on("answerSubmitted", () => {
       console.log("📝 Answer submitted successfully")
-      document.getElementById("submit-answer-btn").disabled = true
-      document.getElementById("answer-input").disabled = true
+      const submitBtn = document.getElementById("submit-answer-btn")
+      const answerInput = document.getElementById("answer-input")
+      if (submitBtn) submitBtn.disabled = true
+      if (answerInput) answerInput.disabled = true
       this.showNotification("Answer submitted!")
     })
 
@@ -155,56 +175,90 @@ class VLImposter2Client {
       this.showError(data.message || "Server error occurred")
     })
 
-    // Test connection after 2 seconds
+    // Test connection after 3 seconds
     setTimeout(() => {
       if (!this.connectionReady) {
-        console.error("⚠️ Connection not ready after 2 seconds")
+        console.error("⚠️ Connection not ready after 3 seconds")
         this.showError("Failed to connect to server. Please refresh the page.")
       }
-    }, 2000)
+    }, 3000)
   }
 
   bindEvents() {
     // Entry page events
-    document.getElementById("create-room-btn").addEventListener("click", () => {
-      console.log("🖱️ Create room button clicked")
-      this.createRoom()
-    })
+    const createRoomBtn = document.getElementById("create-room-btn")
+    const joinRoomBtn = document.getElementById("join-room-btn")
+    const startBtn = document.getElementById("start-btn")
 
-    document.getElementById("join-room-btn").addEventListener("click", () => {
-      console.log("🖱️ Join room button clicked")
-      this.toggleJoinRoom()
-    })
+    if (createRoomBtn) {
+      createRoomBtn.addEventListener("click", () => {
+        console.log("🖱️ Create room button clicked")
+        this.createRoom()
+      })
+    }
 
-    document.getElementById("start-btn").addEventListener("click", () => {
-      console.log("🖱️ Start button clicked")
-      this.joinRoom()
-    })
+    if (joinRoomBtn) {
+      joinRoomBtn.addEventListener("click", () => {
+        console.log("🖱️ Join room button clicked")
+        this.toggleJoinRoom()
+      })
+    }
+
+    if (startBtn) {
+      startBtn.addEventListener("click", () => {
+        console.log("🖱️ Start button clicked")
+        this.joinRoom()
+      })
+    }
 
     // Lobby events
-    document.getElementById("copy-code-btn").addEventListener("click", () => this.copyRoomCode())
-    document.getElementById("ready-btn").addEventListener("click", () => this.toggleReady())
-    document.getElementById("start-game-btn").addEventListener("click", () => this.startGame())
+    const copyCodeBtn = document.getElementById("copy-code-btn")
+    const readyBtn = document.getElementById("ready-btn")
+    const startGameBtn = document.getElementById("start-game-btn")
+
+    if (copyCodeBtn) copyCodeBtn.addEventListener("click", () => this.copyRoomCode())
+    if (readyBtn) readyBtn.addEventListener("click", () => this.toggleReady())
+    if (startGameBtn) startGameBtn.addEventListener("click", () => this.startGame())
 
     // Game events
-    document.getElementById("submit-answer-btn").addEventListener("click", () => this.submitAnswer())
-    document.getElementById("send-chat-btn").addEventListener("click", () => this.sendChatMessage())
-    document.getElementById("chat-input").addEventListener("keypress", (e) => {
-      if (e.key === "Enter") this.sendChatMessage()
-    })
+    const submitAnswerBtn = document.getElementById("submit-answer-btn")
+    const sendChatBtn = document.getElementById("send-chat-btn")
+    const chatInput = document.getElementById("chat-input")
+
+    if (submitAnswerBtn) submitAnswerBtn.addEventListener("click", () => this.submitAnswer())
+    if (sendChatBtn) sendChatBtn.addEventListener("click", () => this.sendChatMessage())
+    if (chatInput) {
+      chatInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") this.sendChatMessage()
+      })
+    }
+
+    // Elimination events
+    const newGameBtn = document.getElementById("new-game-btn")
+    if (newGameBtn) newGameBtn.addEventListener("click", () => this.newGame())
 
     // Theme toggle
-    document.getElementById("theme-toggle").addEventListener("click", () => this.toggleTheme())
+    const themeToggle = document.getElementById("theme-toggle")
+    if (themeToggle) themeToggle.addEventListener("click", () => this.toggleTheme())
 
     // Input validation
-    document.getElementById("player-name").addEventListener("input", () => this.validateInputs())
-    document.getElementById("room-code").addEventListener("input", () => this.validateInputs())
+    const playerNameInput = document.getElementById("player-name")
+    const roomCodeInput = document.getElementById("room-code")
+
+    if (playerNameInput) playerNameInput.addEventListener("input", () => this.validateInputs())
+    if (roomCodeInput) roomCodeInput.addEventListener("input", () => this.validateInputs())
   }
 
   createRoom() {
     console.log("🏠 Create room method called")
 
-    const playerName = document.getElementById("player-name").value.trim()
+    const playerNameInput = document.getElementById("player-name")
+    if (!playerNameInput) {
+      console.error("❌ Player name input not found")
+      return
+    }
+
+    const playerName = playerNameInput.value.trim()
     console.log("👤 Player name:", playerName)
 
     if (!playerName) {
@@ -248,8 +302,13 @@ class VLImposter2Client {
   }
 
   async validateInputs() {
-    const playerName = document.getElementById("player-name").value.trim()
-    const roomCode = document.getElementById("room-code").value.trim().toUpperCase()
+    const playerNameInput = document.getElementById("player-name")
+    const roomCodeInput = document.getElementById("room-code")
+
+    if (!playerNameInput || !roomCodeInput) return
+
+    const playerName = playerNameInput.value.trim()
+    const roomCode = roomCodeInput.value.trim().toUpperCase()
 
     if (playerName.length >= 2) {
       this.showInputSuccess("player-name")
@@ -273,7 +332,8 @@ class VLImposter2Client {
           this.showInputSuccess("room-code")
           this.gameState.roomCode = roomCode
           this.gameState.playerName = playerName
-          document.getElementById("start-btn").style.display = "block"
+          const startBtn = document.getElementById("start-btn")
+          if (startBtn) startBtn.style.display = "block"
         } else {
           this.showInputError("room-code", data.error || "Room not available")
         }
@@ -310,7 +370,8 @@ class VLImposter2Client {
     this.gameState.players = data.players
 
     this.switchPage("lobby")
-    document.getElementById("room-code-display").textContent = data.roomCode
+    const roomCodeDisplay = document.getElementById("room-code-display")
+    if (roomCodeDisplay) roomCodeDisplay.textContent = data.roomCode
     this.updatePlayerList()
     this.updateLobbyStatus()
     this.showNotification(`Room ${data.roomCode} created!`)
@@ -323,7 +384,8 @@ class VLImposter2Client {
     this.gameState.players = data.players
 
     this.switchPage("lobby")
-    document.getElementById("room-code-display").textContent = data.roomCode
+    const roomCodeDisplay = document.getElementById("room-code-display")
+    if (roomCodeDisplay) roomCodeDisplay.textContent = data.roomCode
     this.updatePlayerList()
     this.updateLobbyStatus()
     this.showNotification(`Joined room ${data.roomCode}!`)
@@ -360,9 +422,18 @@ class VLImposter2Client {
     this.gameState.isImposter = data.isImposter
 
     this.switchPage("game")
-    document.getElementById("question-display").textContent = data.question
-    document.getElementById("phase-text").textContent = "Answer Phase"
+    const questionDisplay = document.getElementById("question-display")
+    const phaseText = document.getElementById("phase-text")
+
+    if (questionDisplay) questionDisplay.textContent = data.question
+    if (phaseText) phaseText.textContent = "Answer Phase"
+
     this.updateGamePlayersList()
+
+    // Show imposter indicator
+    if (data.isImposter) {
+      this.showNotification("🎭 You are the IMPOSTER! Answer carefully...")
+    }
   }
 
   handleTimerUpdate(data) {
@@ -389,9 +460,13 @@ class VLImposter2Client {
       answer: answer,
     }))
 
-    document.getElementById("phase-text").textContent = "Discussion Phase"
-    document.getElementById("answer-section").style.display = "none"
-    document.getElementById("chat-section").style.display = "block"
+    const phaseText = document.getElementById("phase-text")
+    const answerSection = document.getElementById("answer-section")
+    const chatSection = document.getElementById("chat-section")
+
+    if (phaseText) phaseText.textContent = "Discussion Phase"
+    if (answerSection) answerSection.style.display = "none"
+    if (chatSection) chatSection.style.display = "block"
 
     this.displayAnswers()
   }
@@ -408,7 +483,11 @@ class VLImposter2Client {
 
   handleVoteUpdate(data) {
     console.log("📊 Handling vote update:", data)
-    // Update vote counter if you want to show it
+    // Could show vote progress here
+    const votingStatus = document.getElementById("voting-status")
+    if (votingStatus) {
+      votingStatus.textContent = `${data.votedCount}/${data.totalPlayers} players have voted`
+    }
   }
 
   handleGameResults(data) {
@@ -443,8 +522,14 @@ class VLImposter2Client {
   }
 
   submitAnswer() {
-    const answer = document.getElementById("answer-input").value.trim()
-    if (!answer) return
+    const answerInput = document.getElementById("answer-input")
+    if (!answerInput) return
+
+    const answer = answerInput.value.trim()
+    if (!answer) {
+      this.showError("Please enter an answer")
+      return
+    }
 
     if (!this.connectionReady) {
       this.showError("Not connected to server")
@@ -456,8 +541,10 @@ class VLImposter2Client {
   }
 
   sendChatMessage() {
-    const input = document.getElementById("chat-input")
-    const message = input.value.trim()
+    const chatInput = document.getElementById("chat-input")
+    if (!chatInput) return
+
+    const message = chatInput.value.trim()
     if (!message) return
 
     if (!this.connectionReady) {
@@ -467,7 +554,7 @@ class VLImposter2Client {
 
     console.log("💬 Sending chat:", message)
     this.socket.emit("sendChatMessage", { message })
-    input.value = ""
+    chatInput.value = ""
   }
 
   castVote(playerName) {
@@ -482,6 +569,15 @@ class VLImposter2Client {
     // Disable all vote buttons
     document.querySelectorAll(".vote-btn").forEach((btn) => {
       btn.disabled = true
+    })
+
+    // Visual feedback
+    const voteCards = document.querySelectorAll(".vote-card")
+    voteCards.forEach((card) => {
+      const button = card.querySelector(".vote-btn")
+      if (button && button.dataset.player === playerName) {
+        card.classList.add("voted")
+      }
     })
   }
 
@@ -588,7 +684,7 @@ class VLImposter2Client {
       voteCard.innerHTML = `
         <h4>${player.name}</h4>
         <div class="answer">"${player.answer}"</div>
-        <button class="game-btn primary vote-btn" onclick="game.castVote('${player.name}')">Vote ${player.name}</button>
+        <button class="game-btn primary vote-btn" data-player="${player.name}" onclick="game.castVote('${player.name}')">Vote ${player.name}</button>
       `
       container.appendChild(voteCard)
     })
@@ -627,6 +723,50 @@ class VLImposter2Client {
     }
   }
 
+  newGame() {
+    // Reset game state
+    this.gameState = {
+      playerName: "",
+      roomCode: "",
+      isHost: false,
+      players: [],
+      currentPlayer: null,
+      gamePhase: "entry",
+      timer: 0,
+      question: "",
+      answer: "",
+      answers: [],
+      isImposter: false,
+    }
+
+    this.switchPage("entry")
+    this.resetForms()
+  }
+
+  resetForms() {
+    const playerNameInput = document.getElementById("player-name")
+    const roomCodeInput = document.getElementById("room-code")
+    const roomCodeGroup = document.getElementById("room-code-group")
+    const startBtn = document.getElementById("start-btn")
+    const createRoomBtn = document.getElementById("create-room-btn")
+    const joinRoomBtn = document.getElementById("join-room-btn")
+
+    if (playerNameInput) playerNameInput.value = ""
+    if (roomCodeInput) roomCodeInput.value = ""
+    if (roomCodeGroup) roomCodeGroup.style.display = "none"
+    if (startBtn) startBtn.style.display = "none"
+    if (createRoomBtn) createRoomBtn.disabled = false
+    if (joinRoomBtn) {
+      joinRoomBtn.disabled = false
+      joinRoomBtn.textContent = "🎯 Join Room"
+    }
+
+    // Reset input styles
+    document.querySelectorAll("input").forEach((input) => {
+      input.classList.remove("success", "error")
+    })
+  }
+
   // Utility methods
   showError(message) {
     console.error("❌ Error:", message)
@@ -644,6 +784,7 @@ class VLImposter2Client {
       z-index: 10000;
       font-family: Orbitron, monospace;
       max-width: 300px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     `
     notification.textContent = message
     document.body.appendChild(notification)
@@ -654,7 +795,9 @@ class VLImposter2Client {
       }
     }, 5000)
   }
-console.log("📢 Notification:", message)
+
+  showNotification(message) {
+    console.log("📢 Notification:", message)
 
     // Create a simple notification
     const notification = document.createElement("div")
@@ -669,6 +812,7 @@ console.log("📢 Notification:", message)
       z-index: 10000;
       font-family: Orbitron, monospace;
       max-width: 300px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     `
     notification.textContent = message
     document.body.appendChild(notification)
@@ -694,6 +838,7 @@ console.log("📢 Notification:", message)
       input.classList.remove("success")
       input.classList.add("error")
     }
+    this.showError(message)
   }
 
   switchPage(pageId) {
@@ -710,16 +855,22 @@ console.log("📢 Notification:", message)
 
   copyRoomCode() {
     if (navigator.clipboard && this.gameState.roomCode) {
-      navigator.clipboard.writeText(this.gameState.roomCode).then(() => {
-        const btn = document.getElementById("copy-code-btn")
-        if (btn) {
-          const originalText = btn.textContent
-          btn.textContent = "✅"
-          setTimeout(() => {
-            btn.textContent = originalText
-          }, 1000)
-        }
-      })
+      navigator.clipboard
+        .writeText(this.gameState.roomCode)
+        .then(() => {
+          const btn = document.getElementById("copy-code-btn")
+          if (btn) {
+            const originalText = btn.textContent
+            btn.textContent = "✅"
+            setTimeout(() => {
+              btn.textContent = originalText
+            }, 1000)
+          }
+          this.showNotification("Room code copied!")
+        })
+        .catch(() => {
+          this.showError("Failed to copy room code")
+        })
     }
   }
 
@@ -744,6 +895,8 @@ console.log("📢 Notification:", message)
             element.innerHTML = value
           } else if (prop === "value") {
             element.value = value
+          } else if (prop === "display") {
+            element.style.display = value
           } else {
             element[prop] = value
           }
@@ -836,4 +989,5 @@ document.addEventListener("DOMContentLoaded", () => {
   game = new VLImposter2Client()
 })
 
-  
+// Make game available globally for onclick handlers
+window.game = game
